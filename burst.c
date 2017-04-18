@@ -32,17 +32,15 @@ int main(int argc, char* argv[]) {
 
 	while (1) {
 		int bytesread = read(infd, buf, BLOCK);
-		fprintf(stderr, "\nBytes: %d\n", bytesread);
 		if ((bytesread == -1) && (errno == EINTR))
 			continue;
-
 		if (bytesread == 0)
 			break;
-		
+
 		char* point;
 		char file[100];
 		
-		/* gets point where . is to get filename and  full file extension */
+		// gets point where . is to get filename and  full file extension 
 		point = strchr(argv[1], '.');
 
 		// adds filename to file
@@ -64,8 +62,14 @@ int main(int argc, char* argv[]) {
 			return 1;
 		}
 
-		write(outfd, buf, bytesread);
-
+		ssize_t byteswritten;
+		while (((byteswritten = write(outfd, buf, bytesread)) == -1) && (errno == EINTR));
+		
+		if (byteswritten == -1) {
+			perror("Output write error");
+			return 1;
+		}
+		
 		close(outfd);
 	}
 
