@@ -12,8 +12,6 @@
 #include <errno.h>
 #include <string.h>
 
-#define BLOCK 500
-
 char* getLineInput(int infd) {
 	int maxLen = 16;
   int currLen = 0;
@@ -40,6 +38,11 @@ char* getLineInput(int infd) {
 }
 
 int writeLines(char* filename, int infd, int filenum) {
+	// what will be returned if no error occurs
+	// 1 means EOF hasn't been reached
+	// 0 means EOF has been reached
+	int keepGoing = 1;
+
 	char* point;
   char file[100];
 
@@ -67,23 +70,25 @@ int writeLines(char* filename, int infd, int filenum) {
 	char* line;
   int i;
   for (i = 0; i < 500; ++i) {
-    if ((line = getLineInput(infd)) != NULL) {
-      ssize_t byteswritten;
+    if (((line = getLineInput(infd)) != NULL) && strlen(line) != 0) {
+			ssize_t byteswritten;
 			while (((byteswritten = write(outfd, line, strlen(line)) == -1)) && (errno == EINTR));
 
 			if (byteswritten == -1) {
 				perror("Output write error");
 				return -1;
 			}
+
       free(line);
     }
     else {
+			keepGoing = 0;
       break;
     }
-  }
+	}
 
   close(outfd);
-	return 0;
+	return keepGoing;
 }
 
 int main(int argc, char* argv[]) {  
@@ -100,46 +105,17 @@ int main(int argc, char* argv[]) {
 	
 	// used to get output filename
 	int count = 1;
-	int result = writeLines(argv[1], infd, count);
-	if (result != 0) {
-		fprintf(stderr, "Error in writeLines function\n");
+	while (1) {
+		int result = writeLines(argv[1], infd, count);
+		if (result == -1) {
+			fprintf(stderr, "Error in writeLines function\n");
+			return 1;
+		}
+		if (!result)
+			break;
+		count++;
 	}
 
-/*		char* point;
-		char file[100];
-		
-		// gets point where . is to get filename and  full file extension 
-		point = strchr(argv[1], '.');
-
-		// adds filename to file
-		strncpy(file, argv[1], point-argv[1]);
-		file[point-argv[1]] = '\0';
-
-		// puts file extension into a variable
-		char ext[20];
-		strcpy(ext, &argv[1][(int)(point-argv[1])]);
-
-		// puts filename all together and increments count for next file
-		sprintf(file, "%s-%d%s", file, count, ext);
-		printf("%s\n", file);
-		count++;
-
-		int outfd = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-		if (outfd < 0) {
-			perror("Output open error");
-			return 1;
-		}
-
-		ssize_t byteswritten;
-		while (((byteswritten = write(outfd, buf, bytesread)) == -1) && (errno == EINTR));
-		
-		if (byteswritten == -1) {
-			perror("Output write error");
-			return 1;
-		}
-		
-		close(outfd);
-*/
 	close(infd);
 
 	return 0;
