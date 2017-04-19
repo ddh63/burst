@@ -59,7 +59,6 @@ int writeLines(char* filename, int infd, int filenum) {
 
   // puts filename all together and increments count for next file
   sprintf(file, "%s-%d%s", file, filenum, ext);
-  printf("%s\n", file);
 
   int outfd = open(file, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
   if (outfd < 0) {
