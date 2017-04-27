@@ -111,14 +111,6 @@ int writeLines(char* filename, int infd, int filenum) {
 		// wait for thread to finish
 		pthread_join(threadinfo.tid, NULL);
 
-		//ssize_t byteswritten;
-		//while (((byteswritten = write(outfd, line, strlen(line)) == -1)) && (errno == EINTR));
-
-		//if (byteswritten == -1) {
-		//	perror("Output write error");
-		//	return -1;
-		//}
-
     free(line);
   }
   else {
