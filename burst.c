@@ -11,6 +11,24 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <pthread.h>
+
+// Global variable to check if there are more lines to write
+// 1 = More lines
+// 0 = EOF
+int keepGoing = 1;
+
+struct threaddata_t {
+	int id;
+	int status;
+	pthread_t tid;
+};
+
+void* process_thread(void* args) {
+	struct threaddata_t* data = args;
+	
+	return &(data->status);
+}
 
 char* getLineInput(int infd) {
 	int maxLen = 16;
@@ -18,31 +36,34 @@ char* getLineInput(int infd) {
 	char* buf = malloc(maxLen);
   char t = 0;
 	int bytesread;
-  while ((bytesread = read(infd, &t, 1)) == 1 && t != '\n') {
-    if (currLen + 2 >= maxLen) {
-      int newLen = maxLen * 2;
-	    char* newBuf = realloc(buf, newLen);
-      if (newBuf == 0) {
-        free(buf);
-        return NULL;
-      }
-      buf = newBuf;
-      maxLen = newLen;
-    }
-    buf[currLen++] = t;
-  }
-  if (t == '\n')
-		buf[currLen++] = t;
+	int i;
+  for (i = 0; i < 500; ++i) {
+		while ((bytesread = read(infd, &t, 1)) == 1 && t != '\n') {
+			if (currLen + 2 >= maxLen) {
+				int newLen = maxLen * 2;
+		    char* newBuf = realloc(buf, newLen);
+		    if (newBuf == 0) {
+			    free(buf);
+				  return NULL;
+	      }
+		    buf = newBuf;
+			  maxLen = newLen;
+	    }
+		  buf[currLen++] = t;
+	  }
+		if (t == '\n')
+			buf[currLen++] = t;
+		// EOF
+		if (bytesread == 0) {
+			keepGoing = 0;
+			break;
+		}
+	}
 	buf[currLen] = '\0';
 	return buf;
 }
 
 int writeLines(char* filename, int infd, int filenum) {
-	// what will be returned if no error occurs
-	// 1 means EOF hasn't been reached
-	// 0 means EOF has been reached
-	int keepGoing = 1;
-
 	char* point;
   char file[100];
 
@@ -67,24 +88,20 @@ int writeLines(char* filename, int infd, int filenum) {
   }
 
 	char* line;
-  int i;
-  for (i = 0; i < 500; ++i) {
-    if (((line = getLineInput(infd)) != NULL) && strlen(line) != 0) {
-			ssize_t byteswritten;
-			while (((byteswritten = write(outfd, line, strlen(line)) == -1)) && (errno == EINTR));
+  if (((line = getLineInput(infd)) != NULL) && strlen(line) != 0) {
+		ssize_t byteswritten;
+		while (((byteswritten = write(outfd, line, strlen(line)) == -1)) && (errno == EINTR));
 
-			if (byteswritten == -1) {
-				perror("Output write error");
-				return -1;
-			}
+		if (byteswritten == -1) {
+			perror("Output write error");
+			return -1;
+		}
 
-      free(line);
-    }
-    else {
-			keepGoing = 0;
-      break;
-    }
-	}
+    free(line);
+  }
+  else {
+		keepGoing = 0;
+  }
 
   close(outfd);
 	return keepGoing;
