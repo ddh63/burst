@@ -20,12 +20,22 @@ int keepGoing = 1;
 
 struct threaddata_t {
 	int id;
+	int outfd;
+	char* dataToWrite;
 	int status;
 	pthread_t tid;
 };
 
 void* process_thread(void* args) {
 	struct threaddata_t* data = args;
+
+	ssize_t byteswritten;
+  while (((byteswritten = write(data->outfd, data->dataToWrite, strlen(data->dataToWrite)) == -1)) && (errno == EINTR));
+
+  if (byteswritten == -1) {
+    perror("Output write error");
+    exit(1);
+  }
 	
 	return &(data->status);
 }
@@ -89,13 +99,25 @@ int writeLines(char* filename, int infd, int filenum) {
 
 	char* line;
   if (((line = getLineInput(infd)) != NULL) && strlen(line) != 0) {
-		ssize_t byteswritten;
-		while (((byteswritten = write(outfd, line, strlen(line)) == -1)) && (errno == EINTR));
+		
+		struct threaddata_t threadinfo;
 
-		if (byteswritten == -1) {
-			perror("Output write error");
-			return -1;
-		}
+		// create thread
+		threadinfo.id = 0;
+		threadinfo.dataToWrite = line;
+		threadinfo.outfd = outfd;
+		pthread_create(&threadinfo.tid, NULL, process_thread, &threadinfo);
+
+		// wait for thread to finish
+		pthread_join(threadinfo.tid, NULL);
+
+		//ssize_t byteswritten;
+		//while (((byteswritten = write(outfd, line, strlen(line)) == -1)) && (errno == EINTR));
+
+		//if (byteswritten == -1) {
+		//	perror("Output write error");
+		//	return -1;
+		//}
 
     free(line);
   }
