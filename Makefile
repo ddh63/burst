@@ -7,7 +7,7 @@ CCOPTS=-Wall
 all : ${EXE}
 
 burst : burst.o
-	${CC} $^ -lpthread -o $@
+	${CC} $^ -lpthread -larchive -o $@
 
 burst.o : burst.c
 	${CC} ${CCOPTS} -c $<

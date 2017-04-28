@@ -12,6 +12,8 @@
 #include <errno.h>
 #include <string.h>
 #include <pthread.h>
+#include <archive.h>
+#include <archive_entry.h>
 
 // Global variable to check if there are more lines to write
 // 1 = More lines
@@ -40,7 +42,7 @@ void* process_thread(void* args) {
 	return &(data->status);
 }
 
-char* getLineInput(int infd) {
+char* getLineInput(struct archive* infd) {
 	int maxLen = 16;
   int currLen = 0;
 	char* buf = malloc(maxLen);
@@ -48,7 +50,7 @@ char* getLineInput(int infd) {
 	int bytesread;
 	int i;
   for (i = 0; i < 500; ++i) {
-		while ((bytesread = read(infd, &t, 1)) == 1 && t != '\n') {
+		while ((bytesread = archive_read_data(infd, &t, 1)) == 1 && t != '\n') {
 			if (currLen + 2 >= maxLen) {
 				int newLen = maxLen * 2;
 		    char* newBuf = realloc(buf, newLen);
@@ -61,7 +63,7 @@ char* getLineInput(int infd) {
 	    }
 		  buf[currLen++] = t;
 	  }
-		if (t == '\n')
+		if (t == '\n' && bytesread != 0)
 			buf[currLen++] = t;
 		// EOF
 		if (bytesread == 0) {
@@ -73,7 +75,7 @@ char* getLineInput(int infd) {
 	return buf;
 }
 
-int writeLines(char* filename, int infd, int filenum) {
+int writeLines(char* filename, struct archive* infd, int filenum) {
 	char* point;
   char file[100];
 
@@ -91,7 +93,7 @@ int writeLines(char* filename, int infd, int filenum) {
   // puts filename all together and increments count for next file
   sprintf(file, "%s-%d%s", file, filenum, ext);
 
-  int outfd = open(file, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
+  int outfd = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
   if (outfd < 0) {
     perror("Output open error");
     return -1;
@@ -127,16 +129,30 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 
+	// setup archive
+	struct archive* a = archive_read_new();
+	archive_read_support_filter_all(a);
+	archive_read_support_format_raw(a);
+
+	// open archive file
+	archive_read_open_filename(a, argv[1], 10240);
+
+	// go to first header file
+	struct archive_entry* entry;
+	archive_read_next_header(a, &entry);
+
+/*
 	int infd = open(argv[1], O_RDONLY);
   if (infd < 0) {
     perror("Input open error");
     return 1;
   }
+*/
 	
 	// used to get output filename
 	int count = 1;
 	while (1) {
-		int result = writeLines(argv[1], infd, count);
+		int result = writeLines(argv[1], a, count);
 		if (result == -1) {
 			fprintf(stderr, "Error in writeLines function\n");
 			return 1;
@@ -146,7 +162,7 @@ int main(int argc, char* argv[]) {
 		count++;
 	}
 
-	close(infd);
+	archive_read_close(a);
 
 	return 0;
 }
