@@ -1,3 +1,4 @@
 burst
 burst.o
+writeLines.o
 data*.txt
