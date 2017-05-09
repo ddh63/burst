@@ -10,5 +10,10 @@ azuser@cs480student12:~/test$ wc --lines data-1.txt
 azuser@cs480student12:~/test$ wc --lines data-2.txt
 160 data-2.txt
 azuser@cs480student12:~/test$ cat data-1.txt data-2.txt | diff - data.txt
+azuser@cs480student12:~/test$ rm data-*
+azuser@cs480student12:~/test$ burst -l 300 data.txt
+azuser@cs480student12:~/test$ ls
+data-1.txt  data-2.txt  data-3.txt  data.txt  screenlog.0
+azuser@cs480student12:~/test$ cat data-1.txt data-2.txt data-3.txt | diff - data.txt
 azuser@cs480student12:~/test$ exit
 exit

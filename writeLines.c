@@ -67,32 +67,32 @@ int writeLines(char* filename, struct archive* infd, int filenum, int lines) {
   // puts filename all together and increments count for next file
   sprintf(file, "%s-%d%s", file, filenum, ext);
 
-  int outfd = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-  if (outfd < 0) {
-    perror("Output open error");
-    return -1;
-  }
+	int outfd = open(file, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	if (outfd < 0) {
+		perror("Output open error");
+		return -1;
+	}
 
-  char* line;
-  if (((line = getLineInput(infd, lines)) != NULL) && strlen(line) != 0) {
+	char* line;
+	if (((line = getLineInput(infd, lines)) != NULL) && strlen(line) != 0) {
 
-    struct threaddata_t threadinfo;
+		struct threaddata_t threadinfo;
 
-    // create thread
-    threadinfo.id = 0;
-    threadinfo.dataToWrite = line;
-    threadinfo.outfd = outfd;
-    pthread_create(&threadinfo.tid, NULL, process_thread, &threadinfo);
+		// create thread
+		threadinfo.id = 0;
+		threadinfo.dataToWrite = line;
+		threadinfo.outfd = outfd;
+		pthread_create(&threadinfo.tid, NULL, process_thread, &threadinfo);
 
-    // wait for thread to finish
+	  // wait for thread to finish
     pthread_join(threadinfo.tid, NULL);
 
-    free(line);
-  }
+	  free(line);
+	}
   else {
-    keepGoing = 0;
-  }
+		keepGoing = 0;
+	}
 
-  close(outfd);
+	close(outfd);
   return keepGoing;
 }

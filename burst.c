@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
 		if (letter == '-') {	
 			letter = argv[argcCounter][1];
 			
-			// help
+			// helper
 			if (letter == 'h') {
 				getHelp();
 				return 0;
